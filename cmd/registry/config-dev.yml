@@ -1,6 +1,6 @@
 version: 0.1
 log:
-  level: debug
+  level: error
   fields:
     service: registry
     environment: development
@@ -21,8 +21,6 @@ log:
 storage:
     delete:
       enabled: true
-    cache:
-        blobdescriptor: redis
     filesystem:
         rootdirectory: /var/lib/registry
     maintenance:
@@ -58,7 +56,7 @@ notifications:
           timeout: 1s
           threshold: 10
           backoff: 1s
-          disabled: true 
+          disabled: true
 health:
   storagedriver:
     enabled: true

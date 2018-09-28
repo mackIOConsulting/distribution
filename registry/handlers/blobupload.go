@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 
 	"github.com/docker/distribution"
@@ -165,6 +168,21 @@ func (buh *blobUploadHandler) GetUploadStatus(w http.ResponseWriter, r *http.Req
 
 // PatchBlobData writes data to an upload.
 func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Request) {
+
+	var bodyBytes []byte
+	bodyBytes, _ = ioutil.ReadAll(r.Body)
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	buffer := make([]byte, 512)
+	r.Body.Read(buffer)
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	var detected = http.DetectContentType(buffer)
+
+	if detected == "text/plain; charset=utf-8" {
+		requestDump, _ := httputil.DumpRequest(r, true)
+		fmt.Println(string(requestDump))
+	}
+
 	if buh.Upload == nil {
 		buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadUnknown)
 		return
