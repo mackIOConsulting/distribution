@@ -169,6 +169,8 @@ func (buh *blobUploadHandler) GetUploadStatus(w http.ResponseWriter, r *http.Req
 // PatchBlobData writes data to an upload.
 func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Request) {
 
+	//safe: better option in images.go:258
+	/*
 	var bodyBytes []byte
 	bodyBytes, _ = ioutil.ReadAll(r.Body)
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
@@ -182,6 +184,7 @@ func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Reque
 		requestDump, _ := httputil.DumpRequest(r, true)
 		fmt.Println(string(requestDump))
 	}
+	*/
 
 	if buh.Upload == nil {
 		buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadUnknown)

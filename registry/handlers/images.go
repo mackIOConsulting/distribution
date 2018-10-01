@@ -255,6 +255,13 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 		return
 	}
 
+	schema2Manifest, _ := manifest.(*schema2.DeserializedManifest)
+	targetDescriptor := schema2Manifest.Target()
+	blobs := imh.Repository.Blobs(imh)
+	configJSON, err := blobs.Get(imh, targetDescriptor.Digest)
+	fmt.Println("configJSON:")
+	fmt.Println(string(configJSON))
+
 	if imh.Digest != "" {
 		if desc.Digest != imh.Digest {
 			ctxu.GetLogger(imh).Errorf("payload digest does match: %q != %q", desc.Digest, imh.Digest)
