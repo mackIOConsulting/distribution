@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"fmt"
+	"github.com/tidwall/gjson"
 	"net/http"
 	"strings"
 
@@ -259,8 +260,16 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	targetDescriptor := schema2Manifest.Target()
 	blobs := imh.Repository.Blobs(imh)
 	configJSON, err := blobs.Get(imh, targetDescriptor.Digest)
-	fmt.Println("configJSON:")
-	fmt.Println(string(configJSON))
+
+	user := gjson.GetBytes(configJSON, "config.User").String()
+
+	fmt.Println("User: ", user)
+
+	if user == "" || user == "root" {
+		ctxu.GetLogger(imh).Error("Images with default or root user are not allowed in this repository")
+		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid)
+		return
+	}
 
 	if imh.Digest != "" {
 		if desc.Digest != imh.Digest {

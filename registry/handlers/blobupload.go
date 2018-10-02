@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 
 	"github.com/docker/distribution"
