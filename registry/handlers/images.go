@@ -272,7 +272,7 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	if mediaType == "application/vnd.docker.distribution.manifest.v2+json" {
 		err = imh.checkRootV2(manifest)
 		if err != nil {
-			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
+			imh.Errors = append(imh.Errors, v2.ErrorCodeRootCheckFailed)
 			return
 		}
 	}
@@ -280,7 +280,7 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	if mediaType == "application/vnd.docker.distribution.manifest.v1+prettyjws" || mediaType == "application/json" {
 		err = imh.checkRootV1(manifest)
 		if err != nil {
-			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
+			imh.Errors = append(imh.Errors, v2.ErrorCodeRootCheckFailed)
 			return
 		}
 	}
@@ -367,11 +367,10 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 
 func (imh *imageManifestHandler) checkRootV1(manifest distribution.Manifest) error {
 	signedSchema1Manifest, _ := manifest.(*schema1.SignedManifest)
-	compat := signedSchema1Manifest.History[0].V1Compatibility
-	user := gjson.Get(compat, "config.User").String()
+	configJSON := signedSchema1Manifest.History[0].V1Compatibility
+	user := gjson.Get(configJSON, "config.User").String()
 	if user == "" || user == "root" {
-		message := "Images with default or root user are not allowed in this repository"
-		return errcode.ErrorCodeDenied.WithMessage(message)
+		return v2.ErrorCodeRootCheckFailed
 	}
 	return nil
 }
@@ -380,17 +379,12 @@ func (imh *imageManifestHandler) checkRootV2(manifest distribution.Manifest) err
 	schema2Manifest, _ := manifest.(*schema2.DeserializedManifest)
 	targetDescriptor := schema2Manifest.Target()
 	blobs := imh.Repository.Blobs(imh)
-	configJSON, err := blobs.Get(imh, targetDescriptor.Digest)
-	if err != nil {
-		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
-		return err
-	}
+	configJSON, _ := blobs.Get(imh, targetDescriptor.Digest)
 
 	user := gjson.GetBytes(configJSON, "config.User").String()
 
 	if user == "" || user == "root" {
-		message := "Images with default or root user are not allowed in this repository"
-		return errcode.ErrorCodeDenied.WithMessage(message)
+		return v2.ErrorCodeRootCheckFailed
 	}
 	return nil
 }

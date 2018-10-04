@@ -83,6 +83,13 @@ var (
 		HTTPStatusCode: http.StatusBadRequest,
 	})
 
+	ErrorCodeRootCheckFailed = errcode.Register(errGroup, errcode.ErrorDescriptor{
+		Value:   "ROOT_CHECK_FAILED",
+		Message: "Images with default or root user are not allowed in this repository",
+		Description: `Images with default or root user are not allowed in this repository.`,
+		HTTPStatusCode: http.StatusBadRequest,
+	})
+
 	// ErrorCodeManifestUnverified is returned when the manifest fails
 	// signature verification.
 	ErrorCodeManifestUnverified = errcode.Register(errGroup, errcode.ErrorDescriptor{
