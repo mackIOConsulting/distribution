@@ -269,20 +269,10 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 		return
 	}
 
-	if mediaType == "application/vnd.docker.distribution.manifest.v2+json" {
-		err = imh.checkRootV2(manifest)
-		if err != nil {
-			imh.Errors = append(imh.Errors, v2.ErrorCodeRootCheckFailed)
-			return
-		}
-	}
-
-	if mediaType == "application/vnd.docker.distribution.manifest.v1+prettyjws" || mediaType == "application/json" {
-		err = imh.checkRootV1(manifest)
-		if err != nil {
-			imh.Errors = append(imh.Errors, v2.ErrorCodeRootCheckFailed)
-			return
-		}
+	err = imh.checkRoot(manifest)
+	if err != nil {
+		imh.Errors = append(imh.Errors, v2.ErrorCodeRootCheckFailed)
+		return
 	}
 
 	var options []distribution.ManifestServiceOption
@@ -365,27 +355,25 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (imh *imageManifestHandler) checkRootV1(manifest distribution.Manifest) error {
-	signedSchema1Manifest, _ := manifest.(*schema1.SignedManifest)
-	configJSON := signedSchema1Manifest.History[0].V1Compatibility
-	user := gjson.Get(configJSON, "config.User").String()
+func (imh *imageManifestHandler) checkRoot(manifest distribution.Manifest) error {
+	var configJSON string
+	var user string
+	switch manifest := manifest.(type) {
+	case *schema1.SignedManifest:
+		configJSON = manifest.History[0].V1Compatibility
+		user = gjson.Get(configJSON, "config.User").String()
+	case *schema2.DeserializedManifest:
+		blobs := imh.Repository.Blobs(imh)
+		configJSON, _ := blobs.Get(imh, manifest.Target().Digest)
+		user = gjson.GetBytes(configJSON, "config.User").String()
+	default:
+		return nil
+	}
+
 	if user == "" || user == "root" {
 		return v2.ErrorCodeRootCheckFailed
 	}
-	return nil
-}
 
-func (imh *imageManifestHandler) checkRootV2(manifest distribution.Manifest) error {
-	schema2Manifest, _ := manifest.(*schema2.DeserializedManifest)
-	targetDescriptor := schema2Manifest.Target()
-	blobs := imh.Repository.Blobs(imh)
-	configJSON, _ := blobs.Get(imh, targetDescriptor.Digest)
-
-	user := gjson.GetBytes(configJSON, "config.User").String()
-
-	if user == "" || user == "root" {
-		return v2.ErrorCodeRootCheckFailed
-	}
 	return nil
 }
 
