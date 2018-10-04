@@ -256,21 +256,6 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 		return
 	}
 
-	schema2Manifest, _ := manifest.(*schema2.DeserializedManifest)
-	targetDescriptor := schema2Manifest.Target()
-	blobs := imh.Repository.Blobs(imh)
-	configJSON, err := blobs.Get(imh, targetDescriptor.Digest)
-
-	user := gjson.GetBytes(configJSON, "config.User").String()
-
-	fmt.Println("User: ", user)
-
-	if user == "" || user == "root" {
-		ctxu.GetLogger(imh).Error("Images with default or root user are not allowed in this repository")
-		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid)
-		return
-	}
-
 	if imh.Digest != "" {
 		if desc.Digest != imh.Digest {
 			ctxu.GetLogger(imh).Errorf("payload digest does match: %q != %q", desc.Digest, imh.Digest)
@@ -282,6 +267,16 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	} else {
 		imh.Errors = append(imh.Errors, v2.ErrorCodeTagInvalid.WithDetail("no tag or digest specified"))
 		return
+	}
+
+	ctxu.GetLogger(imh).Error("mediatype: " + mediaType)
+
+	if mediaType == "application/vnd.docker.distribution.manifest.v2+json" || mediaType == "application/vnd.docker.distribution.manifest.v1+prettyjws" || mediaType == "application/json" {
+		err = imh.checkRoot(manifest)
+		if err != nil {
+			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
+			return
+		}
 	}
 
 	var options []distribution.ManifestServiceOption
@@ -362,6 +357,21 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	w.Header().Set("Location", location)
 	w.Header().Set("Docker-Content-Digest", imh.Digest.String())
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (imh *imageManifestHandler) checkRoot(manifest distribution.Manifest) error {
+	schema2Manifest, _ := manifest.(*schema2.DeserializedManifest)
+	targetDescriptor := schema2Manifest.Target()
+	blobs := imh.Repository.Blobs(imh)
+	configJSON, _ := blobs.Get(imh, targetDescriptor.Digest)
+
+	user := gjson.GetBytes(configJSON, "config.User").String()
+
+	if user == "" || user == "root" {
+		message := "Images with default or root user are not allowed in this repository"
+		return errcode.ErrorCodeDenied.WithMessage(message)
+	}
+	return nil
 }
 
 // applyResourcePolicy checks whether the resource class matches what has
