@@ -360,8 +360,10 @@ func (imh *imageManifestHandler) checkRoot(manifest distribution.Manifest) error
 	var user string
 	switch manifest := manifest.(type) {
 	case *schema1.SignedManifest:
-		configJSON = manifest.History[0].V1Compatibility
-		user = gjson.Get(configJSON, "config.User").String()
+		if len(manifest.History) > 0 {
+			configJSON = manifest.History[0].V1Compatibility
+			user = gjson.Get(configJSON, "config.User").String()
+		}
 	case *schema2.DeserializedManifest:
 		blobs := imh.Repository.Blobs(imh)
 		configJSON, _ := blobs.Get(imh, manifest.Target().Digest)
