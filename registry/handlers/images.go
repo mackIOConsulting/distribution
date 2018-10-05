@@ -369,8 +369,8 @@ func (imh *imageManifestHandler) checkRoot(manifest distribution.Manifest) error
 	default:
 		return nil
 	}
-
-	if user == "" || user == "root" {
+	
+	if user == "" || user == "root" || user == "root:root" || user == "0:0" || user == "0:root" || user == "root:0"{
 		return v2.ErrorCodeRootCheckFailed
 	}
 
