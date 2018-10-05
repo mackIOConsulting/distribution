@@ -2309,7 +2309,7 @@ func createRepository(env *testEnv, t *testing.T, imageName string, tag string) 
 		},
 		History: []schema1.History{
 			{
-				V1Compatibility: "",
+				V1Compatibility: `{"config":{"User":"user"}}`,
 			},
 		},
 	}
