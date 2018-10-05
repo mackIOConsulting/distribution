@@ -215,6 +215,9 @@ type Configuration struct {
 			// the class in authorized resources.
 			Classes []string `yaml:"classes"`
 		} `yaml:"repository,omitempty"`
+		Forbidden struct {
+			Users []string `yaml:"users"`
+		} `yaml:"forbidden,omitempty"`
 	} `yaml:"policy,omitempty"`
 }
 

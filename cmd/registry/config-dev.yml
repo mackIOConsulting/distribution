@@ -62,3 +62,12 @@ health:
     enabled: true
     interval: 10s
     threshold: 3
+policy:
+  forbidden:
+    users:
+      - ""
+      - root
+      - 0
+      - root:root
+      - 0:root
+      - root:0

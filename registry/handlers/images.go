@@ -369,9 +369,14 @@ func (imh *imageManifestHandler) checkRoot(manifest distribution.Manifest) error
 	default:
 		return nil
 	}
-	
-	if user == "" || user == "root" || user == "root:root" || user == "0:0" || user == "0:root" || user == "root:0"{
-		return v2.ErrorCodeRootCheckFailed
+
+	// don't forget to set this option in config.yml
+	fordiddenUsers := imh.App.Config.Policy.Forbidden.Users
+
+	for _, u := range fordiddenUsers {
+		if user == u {
+			return v2.ErrorCodeRootCheckFailed
+		}
 	}
 
 	return nil
