@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"github.com/docker/distribution/registry/api/v2"
+	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"strconv"
@@ -114,6 +116,7 @@ func (pbs *proxyBlobStore) storeLocal(ctx context.Context, dgst digest.Digest) e
 }
 
 func (pbs *proxyBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, r *http.Request, dgst digest.Digest) error {
+
 	served, err := pbs.serveLocal(ctx, w, r, dgst)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("Error serving blob from local storage: %s", err.Error())
@@ -171,6 +174,17 @@ func (pbs *proxyBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distri
 
 	if err := pbs.authChallenger.tryEstablishChallenges(ctx); err != nil {
 		return distribution.Descriptor{}, err
+	}
+
+	configJSON, err := pbs.remoteStore.Get(ctx, dgst)
+	if err != nil {
+		return desc, err
+	}
+
+	user := gjson.GetBytes(configJSON, "config.User").String()
+
+	if user == "" {
+		return desc, v2.ErrorCodeRootCheckFailed
 	}
 
 	return pbs.remoteStore.Stat(ctx, dgst)
