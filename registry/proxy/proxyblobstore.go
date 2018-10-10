@@ -1,13 +1,15 @@
 package proxy
 
 import (
-	"github.com/docker/distribution/registry/api/v2"
-	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/docker/distribution/registry/api/v2"
+	"github.com/tidwall/gjson"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -181,10 +183,11 @@ func (pbs *proxyBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distri
 		return desc, err
 	}
 
-	user := gjson.GetBytes(configJSON, "config.User").String()
-
-	if user == "" {
-		return desc, v2.ErrorCodeRootCheckFailed
+	if gjson.ValidBytes(configJSON) && gjson.GetBytes(configJSON, "config.User").Exists() {
+		user := gjson.GetBytes(configJSON, "config.User").String()
+		if user == "" || strings.Contains(user, "root:") || strings.Contains(user, "0:") {
+			return desc, v2.ErrorCodeRootCheckFailed
+		}
 	}
 
 	return pbs.remoteStore.Stat(ctx, dgst)
