@@ -185,7 +185,7 @@ func (pbs *proxyBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distri
 
 	if gjson.ValidBytes(configJSON) && gjson.GetBytes(configJSON, "config.User").Exists() {
 		user := gjson.GetBytes(configJSON, "config.User").String()
-		if user == "" || strings.Contains(user, "root:") || strings.Contains(user, "0:") {
+		if user == "" || user == "root" || user == "0" || strings.Contains(user, "root:") || strings.Contains(user, "0:") {
 			return desc, v2.ErrorCodeRootCheckFailed
 		}
 	}
